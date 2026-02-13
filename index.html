@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flappy Bird</title>
+
+<style>
+*{
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
+  font-family:Segoe UI,sans-serif;
+}
+
+body{
+  height:100vh;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  background:#111;
+}
+
+/* GAME */
+#game{
+  width:420px;
+  height:90vh;
+  background:url("41524.jpg") center / cover no-repeat;
+  border-radius:22px;
+  position:relative;
+  overflow:hidden;
+  box-shadow:0 25px 50px rgba(0,0,0,.5);
+}
+
+/* SCORE */
+#score{
+  position:absolute;
+  top:16px;
+  left:50%;
+  transform:translateX(-50%);
+  font-size:2.4rem;
+  font-weight:700;
+  color:white;
+  text-shadow:2px 2px 6px rgba(0,0,0,.6);
+  z-index:5;
+}
+
+/* BIRD */
+#bird{
+  position:absolute;
+  left:90px;
+  top:40%;
+  width:48px;
+  height:36px;
+  background:url("bird.png") center / contain no-repeat;
+  transition:transform .1s linear;
+}
+
+/* PIPES */
+.pipe{
+  position:absolute;
+  width:64px;
+  background:linear-gradient(#3ee58b,#1eae5d);
+  border-radius:10px;
+}
+
+/* GROUND */
+#ground{
+  position:absolute;
+  bottom:0;
+  width:100%;
+  height:64px;
+  background:url("ground.png") repeat-x bottom;
+}
+
+/* OVERLAY */
+#overlay{
+  position:absolute;
+  inset:0;
+  background:rgba(0,0,0,.55);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:white;
+  z-index:10;
+}
+
+.overlay-box{
+  background:rgba(255,255,255,.15);
+  padding:28px;
+  border-radius:20px;
+  text-align:center;
+}
+
+.overlay-box button{
+  margin-top:16px;
+  padding:10px 26px;
+  border:none;
+  border-radius:30px;
+  background:#ffcc00;
+  font-weight:600;
+  cursor:pointer;
+}
+</style>
+</head>
+
+<body>
+
+<div id="game">
+  <div id="score">0</div>
+  <div id="bird"></div>
+  <div id="ground"></div>
+
+  <div id="overlay">
+    <div class="overlay-box">
+      <h1>Flappy Bird</h1>
+      <p>Press Space or ↑</p>
+      <button onclick="startGame()">Start</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const game = document.getElementById("game");
+const bird = document.getElementById("bird");
+const scoreEl = document.getElementById("score");
+const overlay = document.getElementById("overlay");
+
+let birdY = 200;
+let velocity = 0;
+let gravity = 0.45;
+let pipes = [];
+let score = 0;
+let running = false;
+
+function startGame(){
+  overlay.style.display="none";
+  birdY = game.clientHeight / 2;
+  velocity = 0;
+  score = 0;
+  scoreEl.textContent = 0;
+  pipes.forEach(p => { p.top.remove(); p.bottom.remove(); });
+  pipes = [];
+  running = true;
+}
+
+function flap(){
+  if(!running) return;
+  velocity = -7;
+}
+
+document.addEventListener("keydown", e=>{
+  if(e.code==="Space" || e.code==="ArrowUp"){
+    e.preventDefault();
+    flap();
+  }
+});
+
+function createPipe(){
+  const gap = 150;
+  const topH = Math.random()*220+40;
+  const bottomH = game.clientHeight - topH - gap - 64;
+
+  const top = document.createElement("div");
+  top.className="pipe";
+  top.style.height=topH+"px";
+  top.style.top=0;
+  top.style.left=game.clientWidth+"px";
+
+  const bottom = document.createElement("div");
+  bottom.className="pipe";
+  bottom.style.height=bottomH+"px";
+  bottom.style.bottom="64px";
+  bottom.style.left=game.clientWidth+"px";
+
+  game.append(top,bottom);
+  pipes.push({top,bottom,passed:false});
+}
+
+setInterval(()=>{ if(running) createPipe(); },1400);
+
+function loop(){
+  if(!running) return requestAnimationFrame(loop);
+
+  velocity += gravity;
+  birdY += velocity;
+  bird.style.top = birdY+"px";
+  bird.style.transform = `rotate(${velocity*5}deg)`;
+
+  pipes.forEach(p=>{
+    let x = p.top.offsetLeft - 2.5;
+    p.top.style.left = x+"px";
+    p.bottom.style.left = x+"px";
+
+    if(!p.passed && x < 90){
+      p.passed = true;
+      score++;
+      scoreEl.textContent = score;
+    }
+
+    if(
+      x < 138 && x+64 > 90 &&
+      (birdY < p.top.offsetHeight ||
+      birdY+36 > game.clientHeight - p.bottom.offsetHeight - 64)
+    ) gameOver();
+  });
+
+  if(birdY < 0 || birdY > game.clientHeight - 100) gameOver();
+  requestAnimationFrame(loop);
+}
+
+function gameOver(){
+  running = false;
+  overlay.style.display="flex";
+  overlay.innerHTML = `
+    <div class="overlay-box">
+      <h1>Game Over</h1>
+      <p>Score: <b>${score}</b></p>
+      <button onclick="startGame()">Restart</button>
+    </div>`;
+}
+
+loop();
+</script>
+
+</body>
+</html>
